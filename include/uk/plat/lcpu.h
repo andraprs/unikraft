@@ -41,6 +41,27 @@
 extern "C" {
 #endif
 
+#define UKPLAT_PER_LCPU_VAR_DEFINE(var_type, var_name) \
+	var_type var_name[CONFIG_UKPLAT_LCPU_MAXCOUNT]
+#define ukplat_per_lcpu_var(var_name, lcpu_idx) \
+	var_name[lcpu_idx]
+#define ukplat_per_lcpu_var_current(var_name) \
+	ukplat_per_lcpu_var(var_name, ukplat_lcpu_idx())
+
+#define UKPLAT_PER_LCPU_FIRST_MULTI_DIM_VAR_DEFINE(var_type, var_name, size) \
+	var_type var_name[CONFIG_UKPLAT_LCPU_MAXCOUNT][size]
+#define ukplat_per_lcpu_first_multi_dim_var(var_name, lcpu_idx, idx) \
+	var_name[lcpu_idx][idx]
+#define ukplat_per_lcpu_first_multi_dim_var_current(var_name, idx) \
+	ukplat_per_lcpu_first_multi_dim_var(var_name, ukplat_lcpu_idx(), idx)
+
+#define UKPLAT_PER_LCPU_SECOND_MULTI_DIM_VAR_DEFINE(var_type, var_name, size) \
+	var_type var_name[size][CONFIG_UKPLAT_LCPU_MAXCOUNT]
+#define ukplat_per_lcpu_second_multi_dim_var(var_name, idx, lcpu_idx) \
+	var_name[idx][lcpu_idx]
+#define ukplat_per_lcpu_second_multi_dim_var_current(var_name, idx) \
+	ukplat_per_lcpu_second_multi_dim_var(var_name, idx, ukplat_lcpu_idx())
+
 /**
  * Enables interrupts
  */
