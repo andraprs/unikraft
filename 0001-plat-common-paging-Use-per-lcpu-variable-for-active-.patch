@@ -1,0 +1,59 @@
+From 9131eefb3cb5bc609819a038c8e4d11cd9fcc8ae Mon Sep 17 00:00:00 2001
+From: Andra Paraschiv <andra@unikraft.io>
+Date: Thu, 9 Mar 2023 15:08:24 +0000
+Subject: [PATCH 1/2] plat/common/paging: Use per-lcpu variable for active page
+ table
+
+Currently there is a global variable that keeps track of the active page
+table that is used by the memory paging logic.
+
+Use a per-lcpu variable instead, to also match the case when multiple
+cores are used for the unikernel setup.
+
+Signed-off-by: Andra Paraschiv <andra@unikraft.io>
+---
+ plat/common/paging.c | 10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/plat/common/paging.c b/plat/common/paging.c
+index 54064ab0..e91b2284 100644
+--- a/plat/common/paging.c
++++ b/plat/common/paging.c
+@@ -45,6 +45,7 @@
+ #include <uk/essentials.h>
+ #include <uk/assert.h>
+ #include <uk/print.h>
++#include <uk/plat/lcpu.h>
+ #include <uk/plat/paging.h>
+ #include <uk/falloc.h>
+ 
+@@ -82,15 +83,12 @@ static unsigned int pg_page_largest_level = PAGE_LEVEL;
+ 
+ /*
+  * Pointer to currently active page table.
+- * TODO: With SMP support, this should move to a CPU-local variable or we
+- * need a way to derive the struct pagetable pointer from the configured
+- * HW page table base pointer.
+  */
+-static struct uk_pagetable *pg_active_pt;
++static UKPLAT_PER_LCPU_VAR_DEFINE(struct uk_pagetable *, pg_active_pt);
+ 
+ struct uk_pagetable *ukplat_pt_get_active(void)
+ {
+-	return pg_active_pt;
++	return ukplat_per_lcpu_var_current(pg_active_pt);
+ }
+ 
+ int ukplat_pt_set_active(struct uk_pagetable *pt)
+@@ -101,7 +99,7 @@ int ukplat_pt_set_active(struct uk_pagetable *pt)
+ 	if (rc)
+ 		return rc;
+ 
+-	pg_active_pt = pt;
++	ukplat_per_lcpu_var_current(pg_active_pt) = pt;
+ 
+ 	return 0;
+ }
+-- 
+2.34.1
+

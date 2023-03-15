@@ -1,0 +1,72 @@
+From 176785dc7615c950a566d2d5949caee01713b1c3 Mon Sep 17 00:00:00 2001
+From: Andra Paraschiv <andra@unikraft.io>
+Date: Thu, 9 Mar 2023 15:22:17 +0000
+Subject: [PATCH 2/2] lib/ukvmem/vmem: Use per-lcpu variable for active virtual
+ address space
+
+Currently there is a global variable that keeps track of the current
+active virtual address space that is used by the virtual memory logic.
+
+Use a per-lcpu variable instead, to also match the case when multiple
+cores are used for the unikernel setup.
+
+Signed-off-by: Andra Paraschiv <andra@unikraft.io>
+---
+ lib/ukvmem/vmem.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/lib/ukvmem/vmem.c b/lib/ukvmem/vmem.c
+index a808c7b2..037a231c 100644
+--- a/lib/ukvmem/vmem.c
++++ b/lib/ukvmem/vmem.c
+@@ -12,6 +12,7 @@
+ #include <uk/essentials.h>
+ #include <uk/arch/limits.h>
+ #include <uk/arch/paging.h>
++#include <uk/plat/lcpu.h>
+ #ifdef CONFIG_HAVE_PAGING
+ #include <uk/plat/paging.h>
+ #endif /* CONFIG_HAVE_PAGING */
+@@ -22,9 +23,8 @@
+ 
+ /*
+  * Pointer to currently active virtual address space.
+- * TODO: This should move to a CPU-local variable
+  */
+-static struct uk_vas *vmem_active_vas;
++static UKPLAT_PER_LCPU_VAR_DEFINE(struct uk_vas *, vmem_active_vas);
+ 
+ /* Forward declarations */
+ static void vmem_vma_unmap(struct uk_vma *vma, __vaddr_t vaddr, __sz len);
+@@ -32,7 +32,7 @@ static void vmem_vma_unlink_and_free(struct uk_vma *vma);
+ 
+ struct uk_vas *uk_vas_get_active(void)
+ {
+-	return vmem_active_vas;
++	return ukplat_per_lcpu_var_current(vmem_active_vas);
+ }
+ 
+ int uk_vas_set_active(struct uk_vas *vas)
+@@ -45,7 +45,7 @@ int uk_vas_set_active(struct uk_vas *vas)
+ 		return rc;
+ #endif /* CONFIG_HAVE_PAGING */
+ 
+-	vmem_active_vas = vas;
++	ukplat_per_lcpu_var_current(vmem_active_vas) = vas;
+ 	return 0;
+ }
+ 
+@@ -83,8 +83,8 @@ void uk_vas_destroy(struct uk_vas *vas)
+ 
+ 	UK_ASSERT(uk_list_empty(&vas->vma_list));
+ 
+-	if (vmem_active_vas == vas)
+-		vmem_active_vas = __NULL;
++	if (ukplat_per_lcpu_var_current(vmem_active_vas) == vas)
++		ukplat_per_lcpu_var_current(vmem_active_vas) = __NULL;
+ }
+ 
+ static void vmem_vma_destroy(struct uk_vma *vma)
+-- 
+2.34.1
+
